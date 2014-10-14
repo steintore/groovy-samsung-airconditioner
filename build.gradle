@@ -1,5 +1,18 @@
 apply plugin: 'groovy'
 
+version = '1.0'
+
+//create a single Jar with all dependencies
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Groovy Samsung Air Conditioner',
+                'Implementation-Version': version
+    }
+    baseName = project.name
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
 repositories {
     mavenCentral()
     maven { url "http://repository.codehaus.org" }
