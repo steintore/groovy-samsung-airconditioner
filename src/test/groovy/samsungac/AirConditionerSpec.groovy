@@ -38,7 +38,7 @@ class AirConditionerSpec extends Specification {
     def "should connect to air conditioner and get token"() {
         given:
         AirConditioner.metaClass.static.readLine = { SSLSocket socket -> return 'Token="ABCEDEF"' }
-        def aircon = new AirConditioner('192.168.1.140', '7A3E4R567T54', null)
+        def aircon = new AirConditioner('192.168.1.140', '7A3E4R567T54')
 
         when:
         aircon.login()
