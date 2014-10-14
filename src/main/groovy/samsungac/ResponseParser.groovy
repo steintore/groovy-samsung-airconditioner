@@ -40,8 +40,16 @@ class ResponseParser {
         line == '<?xml version="1.0" encoding="utf-8" ?><Response Type="GetToken" Status="Ready"/>'
     }
 
-    static boolean isStatusUpdate(line) {
-        line =~ /Update Type="Status"/
+    static boolean isDeviceControl(line) {
+        line =~ /Response Type="DeviceControl"/
+    }
+
+    static boolean isDeviceState(line) {
+        line =~ /Response Type="DeviceState" Status="Okay"/
+    }
+
+    static String getStatusValue(line) {
+        (line =~ /Status="(\w*)"/)[0][1]
     }
 
     static Map parseStatusResponse(String response) {

@@ -14,9 +14,10 @@ class SsdpDiscoverySpec extends Specification {
         def result = SsdpDiscovery.discover()
 
         then:
-        result
+        result.size() == 12
         result."MAC_ADDR" == '7825AD103D06'
         result.LOCATION == 'http://192.168.1.4'
+        result.IP == '192.168.1.4'
     }
 
     def response =

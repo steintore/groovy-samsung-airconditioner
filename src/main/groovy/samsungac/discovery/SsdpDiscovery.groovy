@@ -18,26 +18,23 @@ class SsdpDiscovery {
     def static discover() {
         sendNotify(constructNotifyMessage())
         def response = parseResponse(retrieveResponse())
-        println "Got the following response from Air Conditioner: $response"
+        println "Got the following response from Samsung Air Conditioner: $response"
         response
     }
 
-    static def parseResponse(String response) {
+    private static def parseResponse(String response) {
         Map device = [:]
         response.split(NEWLINE).findAll {it.contains(': ')}.each {
             def splitted = it.split(': ')
             device.put(splitted.first(), splitted.last())
         }
+        device.put('IP', device.LOCATION?.split('//')?.last()?.toString())
         device
     }
 
     static def retrieveResponse() {
         def response = null
-        MulticastSocket recSocket = new MulticastSocket(null)
-        recSocket.bind(new InetSocketAddress(InetAddress.getByName("0.0.0.0"), PORT))
-        recSocket.setTimeToLive(10)
-        recSocket.setSoTimeout(1000)
-        recSocket.broadcast = true
+        MulticastSocket recSocket = setUpSocket()
 
         int i = 0
         while (!response) {
@@ -50,15 +47,21 @@ class SsdpDiscovery {
                 // TODO fix handling of time out
                 if (i >= 2) break
                 i++
-            } finally {
-                recSocket.disconnect()
-                recSocket.close()
             }
         }
         response
     }
 
-    static def sendNotify(def notifyMessage) {
+    private static MulticastSocket setUpSocket() {
+        MulticastSocket recSocket = new MulticastSocket(null)
+        recSocket.bind(new InetSocketAddress(InetAddress.getByName("0.0.0.0"), PORT))
+        recSocket.setTimeToLive(10)
+        recSocket.setSoTimeout(1000)
+        recSocket.broadcast = true
+        recSocket
+    }
+
+    private static def sendNotify(def notifyMessage) {
         MulticastSocket socket = new MulticastSocket(null)
         try {
             socket.bind(new InetSocketAddress(InetAddress.localHost.canonicalHostName, PORT))

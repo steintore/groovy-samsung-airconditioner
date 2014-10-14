@@ -95,6 +95,27 @@ class ResponseParserSpec extends Specification {
         assert !ResponseParser.isCorrectCommandResponse(line, "cmd8006")
     }
 
+    def "should return true if DeviceControl"() {
+        given:
+        def line = '<?xml version="1.0" encoding="utf-8" ?><Response Type="DeviceControl" Status="Okay" DUID="7825AD1243BA" CommandID="cmd8005"/>'
+
+        expect:
+        assert ResponseParser.isDeviceControl(line)
+    }
+
+    def "should return true if response is DeviceState"() {
+        expect:
+        assert ResponseParser.isDeviceState(statusResponse)
+    }
+
+    def "get status value should return the value"() {
+        given:
+        def line = '<?xml version="1.0" encoding="utf-8" ?><Response Type="DeviceControl" Status="Okay" DUID="7825AD1243BA" CommandID="cmd8005"/>'
+
+        expect:
+        ResponseParser.getStatusValue(line) == 'Okay'
+    }
+
 
 //<?xml version="1.0" encoding="utf-8" ?>
     def statusResponse = """

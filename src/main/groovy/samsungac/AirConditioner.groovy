@@ -7,27 +7,29 @@ import javax.net.ssl.X509TrustManager
 
 class AirConditioner {
 
-    private final Map AC_PARAMS = [:]
+    private final String IP
+    private final String MAC
     private String TOKEN_STRING
     private final Integer PORT = 2878
     private Map<String, Object> statusMap = [:]
     private SSLSocket socket
 
-    def AirConditioner(Map params, String token = null) {
-        AC_PARAMS.putAll(params)
+    def AirConditioner(String ipAddress, String macAddress, String token) {
+        IP = ipAddress
+        MAC = macAddress
         TOKEN_STRING = token
     }
 
     def login() {
-        connect()
-        if (!TOKEN_STRING)
-            getToken()
+        socket = connect()
+        2.times { handleResponse() }
+        getToken()
         loginWithToken()
     }
 
-    def loginWithToken() {
+    private def loginWithToken() {
         if (TOKEN_STRING) writeLine("<Request Type=\"AuthToken\"><User Token=\"$TOKEN_STRING\" /></Request>")
-        else throw new Exception("Must connect before login in")
+        else throw new Exception("Must connect and retrieve a token before login in")
 
         if (handleResponse() == 'loginSuccess')
             getStatus()
@@ -51,6 +53,7 @@ class AirConditioner {
         }
 
         if (ResponseParser.isNotLoggedInResponse(line)) {
+            if (TOKEN_STRING) return
             return writeLine('<Request Type="GetToken" />')
         }
 
@@ -75,16 +78,21 @@ class AirConditioner {
             return 'loginSuccess'
         }
 
-        if (ResponseParser.isStatusUpdate(line)) {
+        if (ResponseParser.isDeviceState(line)) {
             statusMap.clear()
             statusMap.putAll(ResponseParser.parseStatusResponse(line))
-            return 'statusUpdate'
+            return 'deviceState'
+        }
+
+        if (ResponseParser.isDeviceControl(line)) {
+            return ResponseParser.getStatusValue(line)
         }
 
         throw new Exception("Response not handled: $line")
     }
 
     private def writeLine(String line) {
+        connect()
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()))
         writer.write(line)
         writer.newLine()
@@ -92,46 +100,40 @@ class AirConditioner {
         println "WRITE: $line"
     }
 
-    private static def readLine(SSLSocket socket) {
+    static def readLine(SSLSocket socket) {
         BufferedReader r = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        def result = null
         try {
-            result = r.readLine()
+            def result = r.readLine()
             println "READ: $result"
+            return result
         } catch (SocketTimeoutException e) {
             println e
         }
-        result
-    }
-
-    private def getIpAddress() {
-        AC_PARAMS.LOCATION.split('//').last().toString()
     }
 
     private def connect() {
         if (socket && socket.isConnected())
-            return socket
+            return
         SSLContext ctx = SSLContext.getInstance("TLS");
         X509TrustManager trustManager = [
                 checkClientTrusted: { Object[] params -> null },
                 checkServerTrusted: { Object[] params -> null },
-                getAcceptedIssuers: { Object[] params -> null }
-        ] as X509TrustManager
+                getAcceptedIssuers: { Object[] params -> null } ] as X509TrustManager
         try {
             ctx.init(null, [trustManager] as TrustManager[], null);
-            socket = ctx.socketFactory.createSocket(getIpAddress(), PORT) as SSLSocket
+            socket = ctx.socketFactory.createSocket(IP, PORT) as SSLSocket
             socket.setSoTimeout(7000)
             socket.startHandshake()
         } catch (Exception e) {
-            println e
+            throw new Exception("Cannot connect to $IP:$PORT", e)
         }
+        socket
     }
 
     private def sendCommand(def command, def value) {
         connect()
-
         def id = "cmd${Math.round(Math.random() * 10000)}"
-        writeLine("<Request Type=\"DeviceControl\"><Control CommandID=\"$id\" DUID=\"${AC_PARAMS.MAC_ADDR}\"><Attr ID=\"$command\" Value=\"$value\" /></Control></Request>")
+        writeLine("<Request Type=\"DeviceControl\"><Control CommandID=\"$id\" DUID=\"${MAC}\"><Attr ID=\"$command\" Value=\"$value\" /></Control></Request>")
         id
     }
 
@@ -164,7 +166,7 @@ class AirConditioner {
     }
 
     def getStatus() {
-        writeLine("<Request Type=\"DeviceState\" DUID=\"${AC_PARAMS.MAC_ADDR}\"></Request>")
+        writeLine("<Request Type=\"DeviceState\" DUID=\"${MAC}\"></Request>")
         handleResponse()
         statusMap
     }
