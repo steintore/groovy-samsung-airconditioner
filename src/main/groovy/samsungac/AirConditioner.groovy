@@ -14,7 +14,7 @@ class AirConditioner {
     private Map<String, Object> statusMap = [:]
     private SSLSocket socket
 
-    def AirConditioner(String ipAddress, String macAddress, String token) {
+    def AirConditioner(String ipAddress, String macAddress, String token = null) {
         IP = ipAddress
         MAC = macAddress
         TOKEN_STRING = token
