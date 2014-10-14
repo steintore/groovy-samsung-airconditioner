@@ -49,6 +49,7 @@ class SsdpDiscovery {
                 i++
             }
         }
+        if (!response) throw new Exception('No air conditioner found')
         response
     }
 
