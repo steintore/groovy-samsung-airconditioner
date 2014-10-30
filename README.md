@@ -25,3 +25,7 @@ import samsungac
 Here we connect with the IP, MAC-address and a token. When connecting for the first time, we do not have a
 token, so we will only send the IP, and the MAC-address
 
+## Creating a Jar
+- Clone the project
+- run "gradle jar"
+- the jar wil be placed in the "build/libs"-folder
