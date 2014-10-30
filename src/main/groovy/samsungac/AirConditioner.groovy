@@ -22,7 +22,7 @@ class AirConditioner {
 
     def login() {
         socket = connect()
-        2.times { handleResponse() }
+        handleResponse()
         getToken()
         loginWithToken()
     }
@@ -46,49 +46,53 @@ class AirConditioner {
     }
 
     private def handleResponse(def commandId = null) {
-        def line = readLine(socket)
+        def line
 
-        if (!line || ResponseParser.isFirstLine(line)) {
-            return
-        }
+        while ((line = readLine(socket)) != null) {
 
-        if (ResponseParser.isNotLoggedInResponse(line)) {
-            if (TOKEN_STRING) return
-            return writeLine('<Request Type="GetToken" />')
-        }
+            if (!line || ResponseParser.isFirstLine(line)) {
+                return
+            }
 
-        if (ResponseParser.isFailedAuthenticationResponse(line)) {
-            throw new Exception('failed to connect')
-        }
+            if (ResponseParser.isNotLoggedInResponse(line)) {
+                if (TOKEN_STRING) return
+                writeLine('<Request Type="GetToken" />')
+                return
+            }
 
-        if (commandId && !ResponseParser.isCorrectCommandResponse(line, commandId)) {
-            throw new Exception("wrong response, expected $commandId, but got: $line")
-        }
+            if (ResponseParser.isFailedAuthenticationResponse(line)) {
+                throw new Exception('failed to connect')
+            }
 
-        if (ResponseParser.isResponseWithToken(line)) {
-            TOKEN_STRING = ResponseParser.parseTokenFromResponse(line)
-            return 'authenticated'
-        }
-        if (ResponseParser.isReadyForTokenResponse(line)) {
-            println 'Switch off and on the air conditioner within 30 seconds'
-            return 'waiting'
-        }
+            if (commandId && ResponseParser.isCorrectCommandResponse(line, commandId)) {
+                return
+            }
 
-        if (ResponseParser.isSuccessfulLoginResponse(line)) {
-            return 'loginSuccess'
-        }
+            if (ResponseParser.isResponseWithToken(line)) {
+                TOKEN_STRING = ResponseParser.parseTokenFromResponse(line)
+                return
+            }
+            if (ResponseParser.isReadyForTokenResponse(line)) {
+                println 'Switch off and on the air conditioner within 30 seconds'
+                return 'waiting'
+            }
 
-        if (ResponseParser.isDeviceState(line)) {
-            statusMap.clear()
-            statusMap.putAll(ResponseParser.parseStatusResponse(line))
-            return 'deviceState'
-        }
+            if (ResponseParser.isSuccessfulLoginResponse(line)) {
+                return
+            }
 
-        if (ResponseParser.isDeviceControl(line)) {
-            return ResponseParser.getStatusValue(line)
-        }
+            if (ResponseParser.isDeviceState(line)) {
+                statusMap.clear()
+                statusMap.putAll(ResponseParser.parseStatusResponse(line))
+                return
+            }
 
-        throw new Exception("Response not handled: $line")
+            if (ResponseParser.isDeviceControl(line)) {
+                return ResponseParser.getStatusValue(line)
+            }
+
+            throw new Exception("Response not handled: $line")
+        }
     }
 
     private def writeLine(String line) {
@@ -118,7 +122,7 @@ class AirConditioner {
         X509TrustManager trustManager = [
                 checkClientTrusted: { Object[] params -> null },
                 checkServerTrusted: { Object[] params -> null },
-                getAcceptedIssuers: { Object[] params -> null } ] as X509TrustManager
+                getAcceptedIssuers: { Object[] params -> null }] as X509TrustManager
         try {
             ctx.init(null, [trustManager] as TrustManager[], null);
             socket = ctx.socketFactory.createSocket(IP, PORT) as SSLSocket

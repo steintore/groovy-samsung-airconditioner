@@ -28,7 +28,7 @@ enum ConvenientMode {
 }
 
 enum Direction {
-    SwingUD, Rotation, Fixed
+    Auto, SwingUD, Rotation, Fixed, SwingLR
 }
 
 enum OperationMode {
