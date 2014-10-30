@@ -1,5 +1,6 @@
 groovy-samsung-airconditioner
 =============================
+[![Build Status](https://travis-ci.org/steintore/groovy-samsung-airconditioner.svg?branch=master)](https://travis-ci.org/steintore/groovy-samsung-airconditioner)
 
 Groovy library to access and control a Samsung Air Conditioner in your home network
 
